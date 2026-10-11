@@ -1,0 +1,904 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tape Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;700&family=Chivo+Mono:wght@400;500;600&display=swap">
+<style>
+body { margin: 0; }
+/* Layout: a desk calculator body beside its printed paper tape; the tape drops below on phones. */
+:root {
+  --page: #e8ebee;
+  --ink: #1c222a;
+  --muted: #5d6875;
+  --shell: #cdd2d8;
+  --shell-edge: #aab2bc;
+  --shell-ink: #4a5461;
+  --lcd: #c3ccae;
+  --lcd-ink: #1d2617;
+  --lcd-dim: rgba(29, 38, 23, 0.5);
+  --key: #fafaf7;
+  --key-edge: #b4bbc3;
+  --key-ink: #1c222a;
+  --key-fn: #e2e6ea;
+  --key-op: #3a4a5e;
+  --key-op-edge: #243140;
+  --key-op-ink: #f3f5f8;
+  --accent: #dc9a2c;
+  --accent-edge: #a46f19;
+  --accent-ink: #231705;
+  --paper: #fcfcf9;
+  --paper-ink: #2a3038;
+  --paper-muted: #848d98;
+  --paper-rule: #c9ced4;
+  --paper-hl: #eef0ea;
+  --focus: #2f6fd6;
+  --solar: #3a2e2a;
+  --solar-hi: #5a4740;
+  --font-ui: "Chivo", "Helvetica Neue", Arial, sans-serif;
+  --font-num: "Chivo Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #121519;
+    --ink: #e2e6eb;
+    --muted: #8d98a5;
+    --shell: #262c34;
+    --shell-edge: #15191e;
+    --shell-ink: #9aa5b2;
+    --lcd: #aab496;
+    --lcd-ink: #182013;
+    --lcd-dim: rgba(24, 32, 19, 0.5);
+    --key: #3a414b;
+    --key-edge: #1f242a;
+    --key-ink: #eef1f4;
+    --key-fn: #30363f;
+    --key-op: #4d6079;
+    --key-op-edge: #2c394a;
+    --key-op-ink: #f3f5f8;
+    --accent: #e6a73a;
+    --accent-edge: #94641a;
+    --accent-ink: #231705;
+    --paper: #1f2329;
+    --paper-ink: #d6dce3;
+    --paper-muted: #7f8995;
+    --paper-rule: #3a414b;
+    --paper-hl: #2a3038;
+    --focus: #7aa7f0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #121519;
+  --ink: #e2e6eb;
+  --muted: #8d98a5;
+  --shell: #262c34;
+  --shell-edge: #15191e;
+  --shell-ink: #9aa5b2;
+  --lcd: #aab496;
+  --lcd-ink: #182013;
+  --lcd-dim: rgba(24, 32, 19, 0.5);
+  --key: #3a414b;
+  --key-edge: #1f242a;
+  --key-ink: #eef1f4;
+  --key-fn: #30363f;
+  --key-op: #4d6079;
+  --key-op-edge: #2c394a;
+  --key-op-ink: #f3f5f8;
+  --accent: #e6a73a;
+  --accent-edge: #94641a;
+  --accent-ink: #231705;
+  --paper: #1f2329;
+  --paper-ink: #d6dce3;
+  --paper-muted: #7f8995;
+  --paper-rule: #3a414b;
+  --paper-hl: #2a3038;
+  --focus: #7aa7f0;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-ui);
+}
+* { box-sizing: border-box; }
+
+.wrap {
+  max-width: 780px;
+  margin: 0 auto;
+  padding-inline: 16px;
+  padding-block: 32px 40px;
+  display: grid;
+  gap: 22px;
+}
+
+.intro h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.intro p {
+  margin: 6px 0 0;
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* Calculator body */
+.calc {
+  flex: 0 1 340px;
+  max-width: 340px;
+  min-width: 0;
+  background: var(--shell);
+  border-radius: 22px;
+  padding: 16px 16px 18px;
+  box-shadow: 0 6px 0 var(--shell-edge), 0 22px 34px -16px rgba(0, 0, 0, 0.45);
+}
+.calc-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.model {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--shell-ink);
+}
+.model small {
+  font-weight: 400;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  margin-left: 6px;
+}
+.solar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  width: 78px;
+  height: 20px;
+  padding: 2px;
+  border-radius: 4px;
+  background: var(--shell-edge);
+}
+.solar i {
+  display: block;
+  border-radius: 1px;
+  background: linear-gradient(180deg, var(--solar-hi), var(--solar));
+}
+
+/* LCD */
+.lcd {
+  background: var(--lcd);
+  color: var(--lcd-ink);
+  border-radius: 8px;
+  padding: 8px 12px 6px;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.28), 0 0 0 3px var(--shell-edge);
+  font-family: var(--font-num);
+  display: grid;
+  gap: 2px;
+}
+.lcd-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  min-height: 1.2em;
+  font-size: 0.78rem;
+}
+.ann {
+  display: flex;
+  gap: 7px;
+  font-weight: 600;
+  flex: none;
+}
+.ann span { opacity: 0.14; }
+.ann span.on { opacity: 1; }
+.expr {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  color: var(--lcd-dim);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.value {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  height: 3.3rem;
+  overflow: hidden;
+  white-space: nowrap;
+  font-weight: 500;
+  font-size: 2.75rem;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  padding-bottom: 4px;
+}
+.value[data-size="lg"] { font-size: 2.15rem; }
+.value[data-size="md"] { font-size: 1.75rem; }
+.value[data-size="sm"] { font-size: 1.4rem; }
+
+/* Keypad */
+.keys {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 18px;
+}
+.key {
+  appearance: none;
+  border: 0;
+  border-radius: 12px;
+  height: 54px;
+  min-width: 0;
+  background: var(--key);
+  color: var(--key-ink);
+  box-shadow: 0 3px 0 var(--key-edge);
+  font: 500 1.35rem/1 var(--font-ui);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.06s ease, box-shadow 0.06s ease, background-color 0.12s ease;
+  display: grid;
+  place-items: center;
+}
+.key:active,
+.key.is-pressed {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--key-edge);
+}
+.key:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.key.fn {
+  background: var(--key-fn);
+  font-size: 1.02rem;
+  font-weight: 600;
+}
+.key.fn sup { font-size: 0.65em; margin-left: 1px; }
+.key.op {
+  background: var(--key-op);
+  color: var(--key-op-ink);
+  box-shadow: 0 3px 0 var(--key-op-edge);
+  font-size: 1.55rem;
+}
+.key.op:active,
+.key.op.is-pressed { box-shadow: 0 1px 0 var(--key-op-edge); }
+.key.op.is-active {
+  background: var(--key-op-ink);
+  color: var(--key-op);
+}
+.key.eq {
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: 0 3px 0 var(--accent-edge);
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+.key.eq:active,
+.key.eq.is-pressed { box-shadow: 0 1px 0 var(--accent-edge); }
+.key.zero { grid-column: span 2; }
+
+/* Tape */
+.tape {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+.tape-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.tape-head h2 {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.link-btn {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: 600 0.82rem var(--font-ui);
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.link-btn:hover { color: var(--ink); text-decoration: underline; }
+.link-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+.paper {
+  height: 506px;
+  overflow-y: auto;
+  background: var(--paper);
+  color: var(--paper-ink);
+  font-family: var(--font-num);
+  font-size: 0.92rem;
+  border-radius: 4px 4px 0 0;
+  padding: 12px 14px 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.paper-edge {
+  height: 8px;
+  background:
+    linear-gradient(to bottom right, var(--paper) 50%, transparent 50%) 0 0 / 12px 8px repeat-x,
+    linear-gradient(to bottom left, var(--paper) 50%, transparent 50%) 0 0 / 12px 8px repeat-x;
+}
+.caption {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--paper-muted);
+  padding: 2px 4px 4px;
+}
+.group {
+  padding-block: 6px;
+  border-bottom: 1px dashed var(--paper-rule);
+}
+.group:last-child { border-bottom: 0; }
+.line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 1.4ch;
+  column-gap: 12px;
+  align-items: baseline;
+  width: 100%;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+button.line {
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+button.line:hover { background: var(--paper-hl); }
+button.line:focus-visible { outline: 2px solid var(--focus); outline-offset: 0; }
+.line .nt {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--paper-muted);
+  text-align: left;
+}
+.line .v {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.line .s {
+  text-align: left;
+  color: var(--paper-muted);
+}
+.line.total { font-weight: 600; }
+.line.total .s { color: var(--paper-ink); }
+.group.example .line,
+.group.example .line .s { color: var(--paper-muted); }
+.empty {
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  color: var(--paper-muted);
+  text-align: center;
+  padding: 40px 12px;
+  line-height: 1.5;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.9;
+}
+kbd {
+  font-family: var(--font-num);
+  font-size: 0.74rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--key);
+  color: var(--key-ink);
+  box-shadow: 0 1px 0 var(--key-edge);
+}
+
+@media (max-width: 660px) {
+  .calc { flex-basis: 100%; margin-inline: auto; }
+  .paper { height: 300px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .key { transition: none; }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="intro">
+    <h1>Tape Calculator</h1>
+    <p>Works like a desk calculator: each operation applies as you go, and every step prints to the tape. Select a total on the tape to use it again.</p>
+  </header>
+
+  <div class="layout">
+    <section class="calc" aria-label="Calculator">
+      <div class="calc-top">
+        <span class="model">TC-12<small>12 digits</small></span>
+        <span class="solar" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      </div>
+
+      <div class="lcd">
+        <div class="lcd-top">
+          <span class="ann" aria-hidden="true">
+            <span data-ann="E">E</span>
+            <span data-ann="+">+</span>
+            <span data-ann="-">−</span>
+            <span data-ann="*">×</span>
+            <span data-ann="/">÷</span>
+          </span>
+          <span class="expr" id="expr"></span>
+        </div>
+        <output class="value" id="value" aria-live="polite" aria-atomic="true">0</output>
+      </div>
+
+      <div class="keys" id="keys">
+        <button type="button" class="key fn" data-key="sqrt" aria-label="Square root">√x</button>
+        <button type="button" class="key fn" data-key="sq" aria-label="Square">x<sup>2</sup></button>
+        <button type="button" class="key fn" data-key="inv" aria-label="Reciprocal">1/x</button>
+        <button type="button" class="key fn" data-key="back" aria-label="Delete last digit">
+          <svg width="22" height="16" viewBox="0 0 22 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M7 1h13a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H7L1 8z"/><path d="M10.5 5l5 6M15.5 5l-5 6"/></svg>
+        </button>
+
+        <button type="button" class="key fn" data-key="clear" id="clear" aria-label="All clear">AC</button>
+        <button type="button" class="key fn" data-key="neg" aria-label="Change sign">±</button>
+        <button type="button" class="key fn" data-key="pct" aria-label="Percent">%</button>
+        <button type="button" class="key op" data-key="/" data-op="/" aria-label="Divide">÷</button>
+
+        <button type="button" class="key" data-key="7">7</button>
+        <button type="button" class="key" data-key="8">8</button>
+        <button type="button" class="key" data-key="9">9</button>
+        <button type="button" class="key op" data-key="*" data-op="*" aria-label="Multiply">×</button>
+
+        <button type="button" class="key" data-key="4">4</button>
+        <button type="button" class="key" data-key="5">5</button>
+        <button type="button" class="key" data-key="6">6</button>
+        <button type="button" class="key op" data-key="-" data-op="-" aria-label="Subtract">−</button>
+
+        <button type="button" class="key" data-key="1">1</button>
+        <button type="button" class="key" data-key="2">2</button>
+        <button type="button" class="key" data-key="3">3</button>
+        <button type="button" class="key op" data-key="+" data-op="+" aria-label="Add">+</button>
+
+        <button type="button" class="key zero" data-key="0">0</button>
+        <button type="button" class="key" data-key="." aria-label="Decimal point">.</button>
+        <button type="button" class="key eq" data-key="=" aria-label="Equals">=</button>
+      </div>
+    </section>
+
+    <section class="tape" aria-label="Tape">
+      <div class="tape-head">
+        <h2>Tape</h2>
+        <button type="button" class="link-btn" id="clear-tape">Clear tape</button>
+      </div>
+      <div>
+        <div class="paper" id="paper" role="log" aria-label="Calculation history"></div>
+        <div class="paper-edge" aria-hidden="true"></div>
+      </div>
+    </section>
+  </div>
+
+  <p class="hint">Keyboard works too: <kbd>0</kbd>–<kbd>9</kbd> <kbd>.</kbd> <kbd>+</kbd> <kbd>-</kbd> <kbd>*</kbd> <kbd>/</kbd> <kbd>%</kbd>, <kbd>Enter</kbd> for equals, <kbd>Backspace</kbd> to delete a digit, <kbd>Esc</kbd> to clear.</p>
+</main>
+
+<script>
+(() => {
+  const SYM = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+  const MAX_DIGITS = 12;
+  const MAX_GROUPS = 60;
+  const STORE = 'tape-calculator-v1';
+
+  // Calculator state
+  let entry = '0';         // what the display holds, as a plain number string
+  let acc = null;          // running total
+  let op = null;           // pending operator
+  let fresh = true;        // next digit starts a new number
+  let hasOperand = false;  // a new number has been entered since the last operator
+  let error = false;
+  let note = null;         // describes functions applied to the current number, e.g. √(16)
+  let justEq = false;
+  let lastOp = null, lastOperand = null, lastExpr = '';
+
+  // Tape
+  const EXAMPLES = [
+    { example: true, closed: true, lines: [
+      { v: 1250, d: '1,250', s: '×' },
+      { v: 1.1, d: '1.1', s: '=' },
+      { v: 1375, d: '1,375', total: true }
+    ] },
+    { example: true, closed: true, lines: [
+      { v: 86.4, d: '86.40', s: '+' },
+      { v: 23.15, d: '23.15', s: '+' },
+      { v: 9.9, d: '9.90', s: '=' },
+      { v: 119.45, d: '119.45', total: true }
+    ] }
+  ];
+  let groups = load() || EXAMPLES.map(g => ({ ...g, lines: g.lines.map(l => ({ ...l })) }));
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE);
+      if (!raw) return null;
+      const g = JSON.parse(raw);
+      return Array.isArray(g) && g.length ? g : null;
+    } catch (e) { return null; }
+  }
+  function save() {
+    try {
+      const keep = groups.filter(g => g.closed && !g.example).slice(-MAX_GROUPS);
+      localStorage.setItem(STORE, JSON.stringify(keep));
+    } catch (e) { /* storage unavailable: the tape still works for this visit */ }
+  }
+  function openGroup() {
+    let g = groups[groups.length - 1];
+    if (!g || g.closed) {
+      groups = groups.filter(x => !x.example);
+      g = { closed: false, lines: [] };
+      groups.push(g);
+    }
+    return g;
+  }
+  function pushLine(line) { openGroup().lines.push(line); }
+  function closeGroup() {
+    const g = groups[groups.length - 1];
+    if (g && !g.closed) g.closed = true;
+    if (groups.length > MAX_GROUPS) groups = groups.slice(-MAX_GROUPS);
+    save();
+  }
+  function dropOpen() {
+    const g = groups[groups.length - 1];
+    if (g && !g.closed) groups.pop();
+  }
+
+  // Number helpers
+  const round = n => Number(n.toPrecision(12));
+  function expo(n) {
+    let [m, e] = n.toExponential(7).split('e');
+    m = m.replace(/\.?0+$/, '');
+    return m + 'e' + Number(e);
+  }
+  function toEntry(n) {
+    if (n === 0) return '0';
+    const a = Math.abs(n);
+    if (a >= 1e12 || a < 1e-9) return expo(n);
+    const s = String(round(n));
+    if (/e/i.test(s) || s.replace(/[^0-9]/g, '').length > 15) return expo(n);
+    return s;
+  }
+  function fmt(s) {
+    const neg = s.startsWith('-');
+    if (neg) s = s.slice(1);
+    let out;
+    if (s.includes('e')) {
+      const [m, e] = s.split('e');
+      out = m + 'e' + e.replace('-', '−');
+    } else {
+      const [i, f] = s.split('.');
+      out = i.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (s.includes('.') ? '.' + f : '');
+    }
+    return (neg ? '−' : '') + out;
+  }
+  const num = s => parseFloat(s);
+  const digitCount = s => s.replace(/[^0-9]/g, '').length;
+  const bare = label => /^[\d.,e]+$/.test(label) ? label : '(' + label + ')';
+
+  function applyOp(a, o, b) {
+    let r;
+    switch (o) {
+      case '+': r = a + b; break;
+      case '-': r = a - b; break;
+      case '*': r = a * b; break;
+      case '/': r = b === 0 ? NaN : a / b; break;
+    }
+    return round(r);
+  }
+
+  // Actions
+  function resetAll() {
+    entry = '0'; acc = null; op = null; fresh = true; hasOperand = false;
+    error = false; note = null; justEq = false; lastExpr = '';
+  }
+  function fail() {
+    dropOpen();
+    resetAll();
+    entry = 'Error';
+    error = true;
+  }
+  function inputDigit(d) {
+    if (error) resetAll();
+    if (fresh) {
+      entry = d; fresh = false; note = null;
+    } else {
+      if (digitCount(entry) >= MAX_DIGITS) return;
+      if (entry === '0') entry = d;
+      else if (entry === '-0') entry = '-' + d;
+      else entry += d;
+    }
+    hasOperand = true; justEq = false; lastExpr = '';
+  }
+  function inputDot() {
+    if (error) resetAll();
+    if (fresh) {
+      entry = '0.'; fresh = false; note = null;
+    } else if (!entry.includes('.') && !entry.includes('e')) {
+      if (digitCount(entry) >= MAX_DIGITS) return;
+      entry += '.';
+    }
+    hasOperand = true; justEq = false; lastExpr = '';
+  }
+  function backspace() {
+    if (error || fresh) return;
+    entry = entry.slice(0, -1);
+    if (entry === '' || entry === '-') entry = '0';
+  }
+  function negate() {
+    if (error || entry === '0') return;
+    entry = entry.startsWith('-') ? entry.slice(1) : '-' + entry;
+    if (note) note = '−' + bare(note);
+    hasOperand = true; justEq = false; lastExpr = '';
+  }
+  function unary(kind) {
+    if (error) return;
+    const x = num(entry);
+    const label = note || fmt(entry);
+    let r, n;
+    switch (kind) {
+      case 'sqrt':
+        if (x < 0) return fail();
+        r = Math.sqrt(x); n = '√' + bare(label); break;
+      case 'sq':
+        r = x * x; n = bare(label) + '²'; break;
+      case 'inv':
+        if (x === 0) return fail();
+        r = 1 / x; n = '1/' + bare(label); break;
+      case 'pct':
+        r = (op === '+' || op === '-') && acc !== null ? acc * x / 100 : x / 100;
+        n = label + '%'; break;
+    }
+    r = round(r);
+    if (!isFinite(r)) return fail();
+    entry = toEntry(r); note = n;
+    fresh = true; hasOperand = true; justEq = false; lastExpr = '';
+  }
+  function setOp(o) {
+    if (error) return;
+    const x = num(entry);
+    if (op && !hasOperand) {
+      // Changing your mind about the operator
+      op = o;
+      const g = groups[groups.length - 1];
+      if (g && !g.closed && g.lines.length) g.lines[g.lines.length - 1].s = SYM[o];
+      return;
+    }
+    pushLine({ v: x, d: fmt(entry), s: SYM[o], note });
+    if (op) {
+      const r = applyOp(acc, op, x);
+      if (!isFinite(r)) return fail();
+      acc = r;
+    } else {
+      acc = x;
+    }
+    op = o; entry = toEntry(acc);
+    fresh = true; hasOperand = false; note = null; justEq = false; lastExpr = '';
+  }
+  function equals() {
+    if (error) return;
+    const x = num(entry);
+    if (op) {
+      const a = acc, o = op;
+      pushLine({ v: x, d: fmt(entry), s: '=', note });
+      const r = applyOp(a, o, x);
+      if (!isFinite(r)) return fail();
+      lastExpr = fmt(toEntry(a)) + ' ' + SYM[o] + ' ' + (note || fmt(entry)) + ' =';
+      pushLine({ v: r, d: fmt(toEntry(r)), total: true });
+      closeGroup();
+      lastOp = o; lastOperand = x;
+      acc = null; op = null; entry = toEntry(r);
+    } else if (justEq && lastOp) {
+      // Pressing = again repeats the last operation
+      const r = applyOp(x, lastOp, lastOperand);
+      if (!isFinite(r)) return fail();
+      pushLine({ v: x, d: fmt(entry), s: SYM[lastOp] });
+      pushLine({ v: lastOperand, d: fmt(toEntry(lastOperand)), s: '=' });
+      pushLine({ v: r, d: fmt(toEntry(r)), total: true });
+      closeGroup();
+      lastExpr = fmt(entry) + ' ' + SYM[lastOp] + ' ' + fmt(toEntry(lastOperand)) + ' =';
+      entry = toEntry(r);
+    } else if (note) {
+      pushLine({ v: x, d: fmt(entry), total: true, note });
+      closeGroup();
+      lastExpr = note + ' =';
+    } else {
+      return;
+    }
+    fresh = true; hasOperand = false; note = null; justEq = true;
+  }
+  function clearKey() {
+    if (!error && hasOperand && !justEq) {
+      // C: clear just the number being entered
+      entry = op ? toEntry(acc) : '0';
+      fresh = true; hasOperand = false; note = null;
+      return;
+    }
+    dropOpen();
+    resetAll();
+  }
+  function recall(v) {
+    if (error) resetAll();
+    entry = toEntry(v);
+    fresh = true; hasOperand = true; note = null; justEq = false; lastExpr = '';
+  }
+
+  function press(k) {
+    if (/^[0-9]$/.test(k)) inputDigit(k);
+    else switch (k) {
+      case '.': inputDot(); break;
+      case '+': case '-': case '*': case '/': setOp(k); break;
+      case '=': equals(); break;
+      case 'back': backspace(); break;
+      case 'neg': negate(); break;
+      case 'pct': case 'sqrt': case 'sq': case 'inv': unary(k); break;
+      case 'clear': clearKey(); break;
+      case 'ac': dropOpen(); resetAll(); break;
+    }
+    render();
+  }
+
+  // Rendering
+  const valueEl = document.getElementById('value');
+  const exprEl = document.getElementById('expr');
+  const clearBtn = document.getElementById('clear');
+  const keysEl = document.getElementById('keys');
+  const paper = document.getElementById('paper');
+  const annEls = Array.from(document.querySelectorAll('[data-ann]'));
+  const opBtns = Array.from(document.querySelectorAll('[data-op]'));
+
+  function render() {
+    const shown = error ? 'Error' : fmt(entry);
+    valueEl.textContent = shown;
+    const len = shown.length;
+    valueEl.dataset.size = len <= 9 ? 'xl' : len <= 12 ? 'lg' : len <= 15 ? 'md' : 'sm';
+
+    let ex = '';
+    if (op) ex = fmt(toEntry(acc)) + ' ' + SYM[op] + (hasOperand ? ' ' + (note || fmt(entry)) : '');
+    else if (justEq) ex = lastExpr;
+    else if (note) ex = note;
+    if (ex.length > 30) ex = '…' + ex.slice(-29);
+    exprEl.textContent = ex;
+
+    annEls.forEach(el => {
+      const a = el.dataset.ann;
+      el.classList.toggle('on', a === 'E' ? error : a === op);
+    });
+
+    const isC = !error && hasOperand && !justEq;
+    clearBtn.textContent = isC ? 'C' : 'AC';
+    clearBtn.setAttribute('aria-label', isC ? 'Clear entry' : 'All clear');
+
+    opBtns.forEach(b => b.classList.toggle('is-active', op === b.dataset.op && !hasOperand));
+    renderTape();
+  }
+
+  function span(cls, text) {
+    const s = document.createElement('span');
+    s.className = cls;
+    s.textContent = text;
+    return s;
+  }
+
+  function renderTape() {
+    paper.textContent = '';
+    if (!groups.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = 'Each calculation prints here as you work.';
+      paper.append(empty);
+      return;
+    }
+    if (groups.some(g => g.example)) {
+      const cap = document.createElement('div');
+      cap.className = 'caption';
+      cap.textContent = 'Examples · cleared when you start';
+      paper.append(cap);
+    }
+    for (const g of groups) {
+      const gd = document.createElement('div');
+      gd.className = 'group' + (g.example ? ' example' : '');
+      for (const ln of g.lines) {
+        let row;
+        if (ln.total) {
+          row = document.createElement('button');
+          row.type = 'button';
+          row.title = 'Use this total';
+          row.setAttribute('aria-label', 'Use total ' + ln.d);
+          row.addEventListener('click', () => { recall(ln.v); render(); });
+        } else {
+          row = document.createElement('div');
+        }
+        row.className = 'line' + (ln.total ? ' total' : '');
+        row.append(span('nt', ln.note || ''), span('v', ln.d), span('s', ln.total ? '*' : ln.s));
+        gd.append(row);
+      }
+      paper.append(gd);
+    }
+    paper.scrollTop = paper.scrollHeight;
+  }
+
+  // Input
+  keysEl.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-key]');
+    if (!btn) return;
+    press(btn.dataset.key);
+    if (e.detail > 0) btn.blur(); // mouse or touch: keep Enter free for equals
+  });
+
+  document.getElementById('clear-tape').addEventListener('click', () => {
+    groups = groups.filter(g => !g.closed);
+    save();
+    renderTape();
+  });
+
+  const KEYMAP = {
+    'Enter': '=', '=': '=', 'Backspace': 'back', 'Escape': 'ac', 'Delete': 'clear',
+    '%': 'pct', '+': '+', '-': '-', '*': '*', 'x': '*', 'X': '*', '/': '/',
+    '.': '.', ',': '.', 'r': 'sqrt', 'q': 'sq', 'i': 'inv'
+  };
+
+  function flash(k) {
+    const name = (k === 'ac') ? 'clear' : k;
+    const btn = keysEl.querySelector('[data-key="' + CSS.escape(name) + '"]');
+    if (!btn) return;
+    btn.classList.add('is-pressed');
+    setTimeout(() => btn.classList.remove('is-pressed'), 110);
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    // Let Enter activate a focused button for keyboard users
+    if (e.key === 'Enter' && e.target.closest && e.target.closest('button')) return;
+    const k = /^[0-9]$/.test(e.key) ? e.key : KEYMAP[e.key];
+    if (!k) return;
+    e.preventDefault();
+    press(k);
+    flash(k);
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
